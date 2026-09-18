@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
+using Avalonia.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TraeCheckin;
@@ -48,6 +49,27 @@ public partial class UsageViewModel : ViewModelBase
     [ObservableProperty]
     private double _cacheHitRate;
 
+    /// <summary>缓存卡主文本：命中量 + 命中率（如 12.3K（87%））。</summary>
+    [ObservableProperty]
+    private string _cacheValueText = "0";
+
+    // ---- 成本估算 + 缓存健康（汇总） ----
+    [ObservableProperty]
+    private bool _hasData;
+
+    [ObservableProperty]
+    private string _estimatedCostText = "¥0";
+
+    /// <summary>汇总缓存健康文案（缓存正常 / 偏低 / 疑似无缓存）。</summary>
+    [ObservableProperty]
+    private string _summaryHealthText = "—";
+
+    [ObservableProperty]
+    private IBrush? _summaryHealthBg;
+
+    [ObservableProperty]
+    private IBrush? _summaryHealthFg;
+
     // ---- 积分快过期提醒 ----
     [ObservableProperty]
     private bool _hasExpiring;
@@ -80,6 +102,12 @@ public partial class UsageViewModel : ViewModelBase
             Sessions.Clear();
             ModelStats.Clear();
             TotalSessions = 0;
+            CacheValueText = "0";
+            HasData = false;
+            EstimatedCostText = "¥0";
+            SummaryHealthText = "—";
+            SummaryHealthBg = null;
+            SummaryHealthFg = null;
             return;
         }
         CurrentAccount = string.IsNullOrEmpty(acc.Name)
@@ -165,14 +193,32 @@ public partial class UsageViewModel : ViewModelBase
         TotalTokensDetail = $"入 {FormatTokens(input)} / 出 {FormatTokens(output)}";
         CacheHitText = FormatTokens(cache);
         CacheHitRate = input > 0 ? cache * 100.0 / input : (cache > 0 ? 100 : 0);
+        CacheValueText = $"{CacheHitText}（{CacheHitRate:0}%）";
 
         if (all.Count == 0)
         {
             DataRangeText = "暂无本地记录（点「拉取用量」同步）";
+            EstimatedCostText = "¥0";
+            CacheValueText = "0";
+            HasData = false;
+            SummaryHealthText = "—";
+            SummaryHealthBg = null;
+            SummaryHealthFg = null;
             Sessions.Clear();
             ModelStats.Clear();
             return;
         }
+
+        // ---- 成本估算 + 缓存健康（汇总） ----
+        // 官方计费（CostMoneyFloat>0）优先展示，否则用本地价目表估算补充。
+        double est = all.Sum(r => ModelPricing.EstimateCost(r.InputToken, r.OutputToken, r.CacheReadToken, r.ModelName));
+        double off = all.Sum(r => Math.Max(0, r.CostMoneyFloat));
+        EstimatedCostText = off > 0 ? $"¥{off:0.00}（官方）" : $"{ModelPricing.Format(est)}（估算）";
+        var health = ModelPricing.Health(CacheHitRate);
+        SummaryHealthText = health.Text;
+        SummaryHealthBg = health.Bg;
+        SummaryHealthFg = health.Fg;
+        HasData = true;
 
         var min = DateTimeOffset.FromUnixTimeSeconds(all.Min(r => r.UsageTime)).ToLocalTime();
         var max = DateTimeOffset.FromUnixTimeSeconds(all.Max(r => r.UsageTime)).ToLocalTime();
@@ -195,6 +241,7 @@ public partial class UsageViewModel : ViewModelBase
                 TotalOutput = g.Sum(r => r.OutputToken),
                 TotalCacheRead = g.Sum(r => r.CacheReadToken),
                 TotalCredits = g.Sum(r => r.CreditsFloat),
+                TotalCostMoney = g.Sum(r => Math.Max(0, r.CostMoneyFloat)),
             });
         }
     }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Avalonia.Media;
 
 namespace TraeTools.Models;
 
@@ -132,6 +133,23 @@ public sealed class ModelUsageStat
 
     /// <summary>展示用：积分 + 命中率一行。</summary>
     public string DetailText => $"共 {TotalCredits:0.#} 积分 · 缓存命中 {CacheHitRate:0}%";
+
+    /// <summary>该模型组官方计费合计（元）；大于 0 时优先展示官方值。</summary>
+    public double TotalCostMoney { get; set; }
+
+    /// <summary>估算成本（元）：按本地价目表口径。</summary>
+    public double EstimatedCost
+        => ModelPricing.EstimateCost(TotalInput, TotalOutput, TotalCacheRead, ModelName);
+
+    /// <summary>成本展示：官方计费优先，否则本地估算。</summary>
+    public string CostText
+        => TotalCostMoney > 0 ? $"¥{TotalCostMoney:0.00}（官方）" : $"{ModelPricing.Format(EstimatedCost)}（估算）";
+
+    /// <summary>缓存健康（三色：正常 / 偏低 / 疑似无缓存）。</summary>
+    public string CacheHealthText => ModelPricing.Health(CacheHitRate).Text;
+    public string CacheHealthKind => ModelPricing.Health(CacheHitRate).Kind;
+    public IBrush HealthBgBrush => ModelPricing.Health(CacheHitRate).Bg;
+    public IBrush HealthFgBrush => ModelPricing.Health(CacheHitRate).Fg;
 
     private static string FormatTokens(long n)
         => n >= 1_000_000 ? $"{n / 1_000_000.0:0.#}M"

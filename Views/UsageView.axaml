@@ -41,43 +41,52 @@
             </Grid>
 
             <!-- ===== 汇总卡片 ===== -->
-            <Grid ColumnDefinitions="*,*,*,*" Margin="0,4,0,0">
+            <Grid ColumnDefinitions="*,*,*,*,*" Margin="0,4,0,0">
                 <Border Grid.Column="0" Classes="card" Margin="0,0,10,0">
                     <StackPanel Spacing="8">
                         <TextBlock Text="记录会话" Classes="card-title" />
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <TextBlock Text="{Binding TotalSessions}" Classes="card-value" />
-                            <TextBlock Text="次" FontSize="13" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Bottom" Margin="0,0,0,4" />
-                        </StackPanel>
+                        <TextBlock Text="{Binding TotalSessions, StringFormat={}{0} 次}" Classes="card-value"
+                                   TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="1" Classes="card" Margin="10,0">
                     <StackPanel Spacing="8">
                         <TextBlock Text="积分消耗" Classes="card-title" />
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <TextBlock Text="{Binding TotalCreditsText}" Classes="card-value" Foreground="{StaticResource WarningBrush}" />
-                            <TextBlock Text="分" FontSize="13" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Bottom" Margin="0,0,0,4" />
-                        </StackPanel>
+                        <TextBlock Text="{Binding TotalCreditsText, StringFormat={}{0} 分}" Classes="card-value"
+                                   Foreground="{StaticResource WarningBrush}"
+                                   TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                 </Border>
                 <Border Grid.Column="2" Classes="card" Margin="10,0">
                     <StackPanel Spacing="8">
                         <TextBlock Text="Token（入/出）" Classes="card-title" />
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <TextBlock Text="{Binding TotalTokensText}" Classes="card-value" FontSize="22" Foreground="{StaticResource AccentBrush}" />
-                            <TextBlock Text="tokens" FontSize="11" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Bottom" Margin="0,0,0,4" />
-                        </StackPanel>
+                        <TextBlock Text="{Binding TotalTokensText, StringFormat={}{0} tokens}" Classes="card-value"
+                                   FontSize="20" Foreground="{StaticResource AccentBrush}"
+                                   TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
                         <TextBlock Text="{Binding TotalTokensDetail}" FontSize="11" Foreground="{StaticResource TextSubBrush}"
                                    TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                 </Border>
-                <Border Grid.Column="3" Classes="card" Margin="10,0,0,0">
+                <Border Grid.Column="3" Classes="card" Margin="10,0">
                     <StackPanel Spacing="8">
-                        <TextBlock Text="缓存命中" Classes="card-title" />
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <TextBlock Text="{Binding CacheHitText}" Classes="card-value" Foreground="{StaticResource SuccessBrush}" />
-                            <TextBlock Text="{Binding CacheHitRate, StringFormat={}{0:0}%}" Classes="card-value" FontSize="13" Foreground="{StaticResource SuccessBrush}" VerticalAlignment="Bottom" Margin="0,0,0,4" />
-                        </StackPanel>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Text="缓存命中" Classes="card-title" TextTrimming="CharacterEllipsis" />
+                            <Border Grid.Column="1" CornerRadius="9" Padding="8,2" VerticalAlignment="Center"
+                                    Background="{Binding SummaryHealthBg}" IsVisible="{Binding HasData}">
+                                <TextBlock Text="{Binding SummaryHealthText}" FontSize="11" Foreground="{Binding SummaryHealthFg}" />
+                            </Border>
+                        </Grid>
+                        <TextBlock Text="{Binding CacheValueText}" Classes="card-value" Foreground="{StaticResource SuccessBrush}"
+                                   TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="4" Classes="card" Margin="10,0,0,0">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="估算成本" Classes="card-title" />
+                        <TextBlock Text="{Binding EstimatedCostText}" Classes="card-value" FontSize="20"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="本地价目表估算 · 官方计费优先" FontSize="11" Foreground="{StaticResource TextSubBrush}" />
                     </StackPanel>
                 </Border>
             </Grid>
@@ -174,7 +183,20 @@
                                         <StackPanel Spacing="3">
                                             <Grid ColumnDefinitions="*,Auto">
                                                 <TextBlock Grid.Column="0" Text="{Binding ModelName}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Grid.Column="1" Text="{Binding SessionCount, StringFormat={}{0} 次}" FontSize="11" Foreground="{StaticResource TextMutedBrush}" />
+                                                <Border Grid.Column="1" CornerRadius="9" Padding="8,2" VerticalAlignment="Center"
+                                                        Background="{Binding HealthBgBrush}">
+                                                    <TextBlock Text="{Binding CacheHealthText}" FontSize="11" Foreground="{Binding HealthFgBrush}" />
+                                                </Border>
+                                            </Grid>
+                                            <Grid ColumnDefinitions="Auto,*">
+                                                <TextBlock Grid.Column="0" FontSize="12" FontWeight="SemiBold"
+                                                           Foreground="{StaticResource WarningBrush}"
+                                                           Margin="0,2,10,0"
+                                                           Text="{Binding CostText}" />
+                                                <TextBlock Grid.Column="1" FontSize="11" Foreground="{StaticResource TextMutedBrush}"
+                                                           VerticalAlignment="Bottom" Margin="0,2,0,0"
+                                                           HorizontalAlignment="Right"
+                                                           Text="{Binding SessionCount, StringFormat={}{0} 次}" />
                                             </Grid>
                                             <TextBlock FontSize="11" Foreground="{StaticResource TextSubBrush}"
                                                        Text="{Binding TokenBrief}" />
