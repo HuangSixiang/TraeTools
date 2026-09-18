@@ -19,3 +19,7 @@ Thumbs.db
 
 # Publish output
 publish/
+# echo-proxy capture / python cache
+tools/echo-proxy/capture/
+__pycache__/
+
