@@ -1,10 +1,8 @@
 name: Trae Daily Checkin
-
 on:
   schedule:
-    # 北京时间每天 00:10（UTC 16:10）
-    - cron: "10 16 * * *" → Runs at 00:10
-  
+    - cron: "10 16 * * *"
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -15,12 +13,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
       - name: Run checkin
         env:
           TRAE_SESSION: ${{ secrets.TRAE_SESSION }}
