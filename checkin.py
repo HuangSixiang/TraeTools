@@ -2,21 +2,25 @@
 # -*- coding: utf-8 -*-
 """
 Trae 每日签到脚本（GitHub Actions 版）
+
 原理：
   Trae 网页端的 JWT 只有 8 小时有效期，但真正的会话凭证是 HttpOnly Cookie
   `X-Cloudide-Session`（约 14 天有效）。本脚本通过该 Cookie 调用
   `GetUserToken` 接口换取全新 JWT，再用新 JWT 执行每日签到。
+
 依赖：仅标准库，无第三方依赖。
+
 环境变量：
   TRAE_SESSION        账号 1 的 X-Cloudide-Session Cookie（必填；后端兼容单账号部署）
   TRAE_DEVICE_ID      账号 1 的 x-device-id，16 位数字（选填，缺省随机）
   TRAE_SESSION_N      第 N(N≥2) 个账号的会话 Cookie；缺失即停止读取更多账号
   TRAE_DEVICE_ID_N    第 N 个账号的 x-device-id（选填，缺省随机）
   全部账号共享：       FEISHU_WEBHOOK（选填，签到后推送一条汇总）
-  全部账号共享：       SC_SENDKEY（选填，签到失败时微信推送通知）
+
 用法：
   python checkin.py
 """
+
 import datetime
 import json
 import os
@@ -24,7 +28,6 @@ import random
 import sys
 import time
 import urllib.request
-import urllib.parse
 
 BASE = "https://api.trae.cn"
 
@@ -91,20 +94,6 @@ def notify_feishu(webhook, text):
         return None
 
 
-def notify_serverchan(sendkey, title, desp=""):
-    """通过 Server 酱推送微信消息；sendkey 为空则跳过。返回 HTTP 状态码，失败返回 None。"""
-    if not sendkey:
-        return None
-    try:
-        url = "https://sctapi.ftqq.com/%s.send" % sendkey
-        body = urllib.parse.urlencode({"title": title[:32], "desp": desp}).encode("utf-8")
-        req = urllib.request.Request(url, data=body, method="POST")
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            return resp.status
-    except Exception:
-        return None
-
-
 def beijing_now_str():
     """返回北京时间字符串（GitHub Actions 运行在 UTC，需 +8 小时）。"""
     return (datetime.datetime.utcnow() + datetime.timedelta(hours=8)).strftime("%Y-%m-%d %H:%M:%S")
@@ -137,8 +126,7 @@ def main():
         sys.exit(1)
 
     webhook = os.environ.get("FEISHU_WEBHOOK", "").strip()
-    sc_sendkey = os.environ.get("SC_SENDKEY", "").strip()
-    ok_names, fail_names, fail_details = [], [], []
+    ok_names, fail_names = [], []
     all_ok = True
 
     for index, session, device_id in accounts:
@@ -174,12 +162,10 @@ def main():
                 reason = body.get("message") or ("HTTP %s" % result["http"])
                 print("[%s] 签到失败：%s" % (name, reason))
                 fail_names.append(name)
-                fail_details.append("%s: %s" % (name, reason))
                 all_ok = False
         except Exception as e:
             print("[%s] 签到异常: %s" % (name, e))
             fail_names.append(name)
-            fail_details.append("%s: %s" % (name, str(e)[:200]))
             all_ok = False
 
     # 汇总一条飞书推送（无论成功/失败都汇总，webhook 为空则跳过）
@@ -188,17 +174,8 @@ def main():
         summary.append("成功：" + "、".join(ok_names))
     if fail_names:
         summary.append("失败：" + "、".join(fail_names))
-    summary_text = "\n".join(summary)
-
     if webhook and (ok_names or fail_names):
-        notify_feishu(webhook, summary_text)
-
-    # 签到失败或会话失效时，通过 Server 酱推送微信通知
-    if not all_ok and sc_sendkey:
-        sc_title = "Trae签到异常提醒"
-        sc_desp = "时间：%s\n失败详情：\n%s" % (beijing_now_str(), "\n".join(fail_details))
-        notify_serverchan(sc_sendkey, sc_title, sc_desp)
-        print("已通过 Server 酱推送微信通知")
+        notify_feishu(webhook, "\n".join(summary))
 
     if not all_ok:
         sys.exit(1)
