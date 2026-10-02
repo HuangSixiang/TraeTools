@@ -1,8 +1,8 @@
 name: Trae Daily Checkin
 on:
   schedule:
-    - cron: "10 16 * * *"
-    - cron: "10 17 * * *"
+    - cron: "10 18 * * *"
+    - cron: "10 19 * * *"
   workflow_dispatch: {}
 
 permissions:
